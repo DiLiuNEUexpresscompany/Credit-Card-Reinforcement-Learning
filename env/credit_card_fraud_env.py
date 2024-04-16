@@ -7,8 +7,9 @@ import random
 
 class FraudEnv(gym.Env):
     def __init__(self):
-        self.f = './data/train_dataset_1to100.csv'
+        self.f = './data/train_dataset_balanced.csv'
         self.df_xy = pd.DataFrame(pd.read_csv(self.f))
+        self.df_xy = self.df_xy.drop(columns=['id'])
         self.ACTION_LOOKUP = {0: 'not_fraud', 1: 'fraud'}
 
         self.action_space = spaces.Discrete(len(self.ACTION_LOOKUP))
@@ -54,19 +55,26 @@ class FraudEnv(gym.Env):
         self.predicted_action = self._take_action(predicted_action_index)
         self.reward = self._get_reward(predicted_action_index)
         self.ob = self._get_next_state()
-        if self.turns > 10 or self.sum_rewards > 2:
+        if self.turns > 10 or self.sum_rewards > 2 or self.episode_over:
             self.episode_over = True
-
         return self.ob, self.reward, self.episode_over, {}
-
+    """
     def reset(self):
-        """
+        
                Reset the environment and supply a new state for initial state
                :return:
-               """
+              
 
         self.turns = 0
         self.ob = self._get_random_initial_state()
+        self.episode_over = False
+        self.sum_rewards = 0.0
+        return self.ob
+     """
+    def reset(self):
+        self.current_state_index = random.randint(0, len(self.df_xy) - 1)  # 重置索引
+        self.turns = 0
+        self.ob = self.df_xy.iloc[self.current_state_index]
         self.episode_over = False
         self.sum_rewards = 0.0
         return self.ob
@@ -109,14 +117,24 @@ class FraudEnv(gym.Env):
                 reward = -1.0
         self.sum_rewards += reward
         return reward
-
+    """
     def _get_next_state(self):
-        """
+        
         Get the next state from current state
         :return:
-        """
+        
         df = self.df_xy
         new_state_index = self.current_state_index + 1
+        next_state = df.iloc[new_state_index]
+        self.current_state_index = new_state_index
+        return next_state
+    """
+    def _get_next_state(self):
+        df = self.df_xy
+        new_state_index = self.current_state_index + 1
+        if new_state_index >= len(df):  # 检查索引是否超出范围
+            self.episode_over = True  # 结束当前环节
+            return df.iloc[0]  # 可以选择重置到第一个状态，或者调用self.reset()
         next_state = df.iloc[new_state_index]
         self.current_state_index = new_state_index
         return next_state
