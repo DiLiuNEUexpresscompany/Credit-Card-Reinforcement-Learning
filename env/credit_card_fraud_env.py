@@ -3,11 +3,12 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 import pandas as pd
 import random
+import numpy as np
 
 
 class FraudEnv(gym.Env):
     def __init__(self):
-        self.f = './data/train_dataset_balanced.csv'
+        self.f = './data/test_dataset_imbalanced.csv'
         self.df_xy = pd.DataFrame(pd.read_csv(self.f))
         self.df_xy = self.df_xy.drop(columns=['id'])
         self.ACTION_LOOKUP = {0: 'not_fraud', 1: 'fraud'}
@@ -99,9 +100,78 @@ class FraudEnv(gym.Env):
 
     def _get_reward(self, predicted_action):
         """
+        Get reward for the action taken in the current state
+        :return:
+        """
+        # Retrieve the current transaction amount
+        amount = self.df_xy.iloc[self.current_state_index]['Amount']
+        
+        # Get the true action label
+        true_action = self.df_xy.iloc[self.current_state_index]['Class']
+        
+        # Constants for reward calculation, alpha should be defined based on your requirement
+        alpha = 50.0  
+
+        # Calculate reward based on provided formula
+        if predicted_action == 0 and true_action == 0:
+            reward = 1
+        elif predicted_action == 1 and true_action == 0:
+            reward = -10
+        elif predicted_action == 0 and true_action == 1:
+            reward = -1000
+        elif predicted_action == 1 and true_action == 1:
+            reward = 100
+        else:
+            reward = 0  # Default case, can adjust as needed
+        
+        # Update sum of rewards
+        self.sum_rewards += reward
+        return reward
+
+        """
+        # Calculate reward based on provided formula
+        if predicted_action == 0 and true_action == 0:
+            reward = np.log10(amount)
+        elif predicted_action == 1 and true_action == 0:
+            reward = -1 * np.log10(amount)
+        elif predicted_action == 0 and true_action == 1:
+            reward = -1 * alpha * np.log10(amount)
+        elif predicted_action == 1 and true_action == 1:
+            reward = alpha * np.log10(amount)
+        else:
+            reward = 0  # Default case, can adjust as needed
+        
+        # Update sum of rewards
+        self.sum_rewards += reward
+        return reward
+
+        """
+
+        """
+        # Calculate reward based on provided formula
+        if predicted_action == 0 and true_action == 0:
+            reward = 0
+        elif predicted_action == 1 and true_action == 0:
+            reward = -1 * alpha
+        elif predicted_action == 0 and true_action == 1:
+            reward = -1 * amount
+        elif predicted_action == 1 and true_action == 1:
+            reward = -1 * alpha
+        else:
+            reward = 0  # Default case, can adjust as needed
+        """
+        """
+        # Update sum of rewards
+        self.sum_rewards += reward
+        return reward
+        """
+
+    """
+    def _get_reward(self, predicted_action):
+        
                 Get reward for the action taken in the current state
                 :return:
-                """
+            
         df = self.df_xy
         labelled_action = df.iloc[self.current_state_index]['Class']
         reward = 0.0
@@ -117,6 +187,8 @@ class FraudEnv(gym.Env):
                 reward = -1.0
         self.sum_rewards += reward
         return reward
+
+    """        
     """
     def _get_next_state(self):
         
